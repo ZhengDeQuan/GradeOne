@@ -1,0 +1,30 @@
+在这个文件夹中将，所有的数字[0-9]都变成了 ' '+i+' '
+将数字前后都加上空格
+使用的代码是下面的代码
+import re
+import os
+
+pattern = re.compile('[0-9]',re.S)
+def myfunction(line):
+
+    def rep0_9( i ):
+        return ' '+line[i.start()]+' '
+
+    new_line = re.sub(pattern, rep0_9 , line)
+    return new_line
+
+infiles = ['WikiQASent-test-filtered.txt','WikiQASent-dev-filtered.txt','WikiQASent-train.txt']
+dir = "NewCorpus"
+infile = infiles[2]
+outfile = os.path.join(dir,infile)
+
+with open(infile , 'r',encoding= 'utf-8') as fin:
+    in_lines = fin.readlines()
+    out_lines = []
+    for line in in_lines:
+        new_line = myfunction(line)
+        out_lines.append(new_line)
+
+    with open(outfile,'w',encoding = 'utf-8') as fout:
+        for new_line in out_lines:
+            fout.write(new_line)
