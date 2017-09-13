@@ -144,3 +144,91 @@ def make_fake_y2(length):
 
 def make_fake_y(length):
     return np.zeros((length,),dtype ='int32')
+
+#########
+#为了test#
+#########
+
+#以下的函数是为了test和valid训练集而建立的，因为他们不需要制造错误答案，但是却需要一个qid的东西来计算MAP、MRR
+#对于get_data()是将同样问题的问答对放到一起的，所以也可以在这里用
+#这里的第一个函数的输入就是get_data()的输出
+def get_qids(Ques):
+    #获得qid 和label的组合
+    qids = []
+    qindex = int(0)
+    for One_Que in Ques:
+        for line in One_Que:
+            qids.append([qindex,line[2]])#将qid和label一起装入
+            qindex += 1
+    return qids
+
+
+def get_Padded_data_for_test(Ques,MAX_SEQUENCE_LENGTH):
+    # 现在的Ques的shape是[batch_size,3,?]，因为每个句子的长度不等，所以第三个维度不统一，需要用0 pad
+    for_sen = []
+    For_return = []
+    for line in Ques:
+        for_sen = []
+        for i in range(2):
+            sen = line[i]
+        #for sen in line:#对于train来说是que ,ans1 ,ans2 ,对于valid，test来说是que ，ans ,label,num
+            sentence = np.zeros(MAX_SEQUENCE_LENGTH,dtype='float32')
+            # sentence_array = np.zeros((MAX_SEQUENCE_LENGTH,),dtype="int32")
+            # sentence = list(sentence_array)
+            # sentence = []
+            # for i in range(MAX_SEQUENCE_LENGTH):
+            #     sentence.append(int(0))
+            for i ,word_id in enumerate(sen):
+                if i >= MAX_SEQUENCE_LENGTH :
+                    break
+                sentence[i] = word_id
+            for_sen.append(sentence)
+        #for_sen = np.array(for_sen)
+        For_return.append(for_sen)
+    #For_return = np.array(For_return)
+    return For_return
+
+
+def get_triple_for_test(Data):#
+    Que = []
+    Ans1 = []
+    #Ans2 = []
+    for line in Data:
+        Que.append(line[0])
+        Ans1.append(line[1])
+        #Ans2.append(line[1])
+    Que = np.array(Que)
+    Ans1 = np.array(Ans1)
+    #Ans2 = np.array(Ans2)
+    #return Que, Ans1, Ans2
+    return Que , Ans1, Ans1
+
+#####
+#MAP#
+#####
+#接下来是计算MAP、MRR函数的地方，默认的输入是out=[],每个元素是问答对的cos值，qids = []每个元素是一个二元组元组中是[qid,label]
+def make_sdict(out, qids):
+    sdict = {}
+    index = int(0)
+    for score in out:
+        qid = qids[index][0]
+        if qid not in sdict:
+            sdict[qid] = []
+        sdict[qid].append([score,qids[index][1]])
+    #将sdict排序方便之后的MAP、MRR的计算
+    for qid,cases in sdict.items():
+        cases.sort(key = operator.itemgetter(0) , reverse = True)
+        #按照余弦相似度从高到低排序
+
+    return sdict
+
+def cal_MAP(sdict):
+    #跳过全1全0的情况
+
+    return
+
+def cal_MRR(sdict):
+    #跳过全1全0的情况
+
+    return
+
