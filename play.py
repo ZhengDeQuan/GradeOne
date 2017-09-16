@@ -91,3 +91,10 @@
 #         a = input("}{")
 
 
+sdict = {}
+for i in range(10):
+    if i not in sdict:
+        sdict[i] = []
+    for j in range(10):
+        sdict[i].append(j)
+print(sdict)

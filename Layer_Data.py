@@ -3,6 +3,7 @@
 import os
 import re
 import pickle
+import operator
 import numpy as np
 
 indir = "NewCorpus7"
@@ -26,6 +27,7 @@ Margin = 0.05
 先load trian 和 valid的数据，在最后的测试阶段再load test集
 '''
 def str_to_int(line):
+    #其实是str_to_int_4_list
     #line是一个列表['que','ans','label','num_of……']每个元素都是字符串形式的数字，这个函数要将他们转换成真正的数字
     for i in range(4):
         line[i] = line[i].split()
@@ -159,9 +161,18 @@ def get_qids(Ques):
     for One_Que in Ques:
         for line in One_Que:
             qids.append([qindex,line[2]])#将qid和label一起装入
-            qindex += 1
+        qindex += 1
     return qids
 
+
+def get_Med_data_for_test(Ques):
+    #input 最内层呢个，每一行是一个问答对的sample，同一个问题的sample聚成一个list，很多问题的list聚成Ques
+    #output 不按照问题聚集，将每个问题的sample聚集成一个list
+    For_return = []
+    for One_Que in Ques:
+        for line in One_Que:
+            For_return.append(line)
+    return For_return
 
 def get_Padded_data_for_test(Ques,MAX_SEQUENCE_LENGTH):
     # 现在的Ques的shape是[batch_size,3,?]，因为每个句子的长度不等，所以第三个维度不统一，需要用0 pad
@@ -215,20 +226,72 @@ def make_sdict(out, qids):
         if qid not in sdict:
             sdict[qid] = []
         sdict[qid].append([score,qids[index][1]])
+        index += 1
     #将sdict排序方便之后的MAP、MRR的计算
     for qid,cases in sdict.items():
         cases.sort(key = operator.itemgetter(0) , reverse = True)
         #按照余弦相似度从高到低排序
-
     return sdict
 
 def cal_MAP(sdict):
+    #MAP，主集合平均准确率，单个主题的平均准确率的平均值
+    #sdict字典，键为qid，值为列表,每个元素都是[cos_score,label]的格式
     #跳过全1全0的情况
+    MAP = 0.0
+    relQ = 0.0
+    for key , values in sdict.items():
+        cnt = 0
+        #for value in values: cnt += value[1]
+        # values =  [ [array([ 0.45723709], dtype=float32), [0]],……
+        #value[1]取出的是[ 0 ]
+        for value in values: cnt += value[1][0]
+        if cnt == 0 or cnt == len(values): continue #跳过全0全1的部分
+        avg_prec = 0.0
+        rel = 0.0
 
-    return
+        for i , value in enumerate(values):
+            if value[1][0] == 1:
+                rel += 1.0
+                avg_prec += rel/(1 + i)
+        avg_prec /= rel
+
+        MAP += avg_prec
+        relQ += 1.0
+    #在for循环之外
+    try:
+        MAP /= relQ
+    except ZeroDivisionError:
+        print("relQ==0,means no label == 1 sample exists")
+        return -1
+
+    return MAP
+
 
 def cal_MRR(sdict):
     #跳过全1全0的情况
+    #以第一个为最优答答案，看最优成绩的排名，然后取导数，然后再对所有的导数求平均
+    MRR =0.0
+    relQ = 0.0
+    for key , values in sdict.items():
+        cnt = 0
+        # for value in values : cnt += value[1]
+        # values =  [ [array([ 0.45723709], dtype=float32), [0]],……
+        # value[1]取出的是 [ 0 ]
+        for value in values: cnt += value[1][0]
+        if cnt == 0 or cnt == len(values): continue
 
-    return
+        for i,value in enumerate(values):
+            if value[1][0] == 1:
+                MRR += 1/(i + 1)
+                relQ += 1.0
+                break
+
+    try:
+        MRR/=relQ
+    except ZeroDivisionError:
+        print("relQ==0,means no label == 1 sample exists")
+        return -1
+
+    return MRR
+
 
